@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log In — LGU Chatbot</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="auth-wrapper">
+    <div class="seal">LGU</div>
+    <div class="auth-card">
+      <h1>Welcome back</h1>
+      <p class="subtitle">Log in to continue to the LGU Assistant</p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@lgu.edu.pk" required autocomplete="email" />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Your password" required autocomplete="current-password" />
+        </div>
+
+        <button type="submit" class="btn-primary" id="loginBtn">Log In</button>
+
+        <p class="message" id="formMessage"></p>
+      </form>
+
+      <p class="switch-link">Don't have an account? <a href="signup.html">Sign up</a></p>
+    </div>
+    <p class="footer-note">LGU Chatbot &middot; Secured by Firebase Authentication</p>
+  </div>
+
+  <script type="module">
+    import { auth } from "./firebase-config.js";
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const form = document.getElementById("loginForm");
+    const messageEl = document.getElementById("formMessage");
+    const loginBtn = document.getElementById("loginBtn");
+
+    function showMessage(text, type) {
+      messageEl.textContent = text;
+      messageEl.className = "message " + type;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Logging in...";
+      showMessage("", "");
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Save basic user info so other pages (like index.html) can use it
+        localStorage.setItem("lguUser", JSON.stringify({
+          uid: user.uid,
+          email: user.email
+        }));
+
+        showMessage("Login successful! Redirecting...", "success");
+
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 600);
+
+      } catch (error) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Log In";
+
+        let friendly = "Something went wrong. Please try again.";
+        if (
+          error.code === "auth/invalid-credential" ||
+          error.code === "auth/wrong-password" ||
+          error.code === "auth/user-not-found"
+        ) {
+          friendly = "Incorrect email or password.";
+        } else if (error.code === "auth/invalid-email") {
+          friendly = "Please enter a valid email address.";
+        } else if (error.code === "auth/too-many-requests") {
+          friendly = "Too many attempts. Please wait a bit and try again.";
+        }
+        showMessage(friendly, "error");
+      }
+    });
+  </script>
+
+</body>
+</html>

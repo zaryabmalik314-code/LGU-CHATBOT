@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.netlify.ephemeral_lollipop_74bb88.twa",
+        "sha256_cert_fingerprints": ["08:90:98:6D:D1:40:17:AF:C0:DB:CC:2E:54:D3:91:BA:41:AE:59:52:05:95:4A:A6:72:69:73:D6:0B:65:BC:A4"]
+      }
+    }]
