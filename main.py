@@ -37,8 +37,17 @@ if not os.path.exists("chroma_db"):
         zip_ref.extractall(".")
     print("chroma_db ready.")
 
+print("DEBUG: contents of chroma_db ->", os.listdir("chroma_db"))
+for item in os.listdir("chroma_db"):
+    full_path = os.path.join("chroma_db", item)
+    if os.path.isfile(full_path):
+        print(f"DEBUG: {item} size = {os.path.getsize(full_path)} bytes")
+    else:
+        print(f"DEBUG: {item} is a directory, contents: {os.listdir(full_path)}")
+
 chroma_client = chromadb.PersistentClient(path="chroma_db")
 collection = chroma_client.get_or_create_collection(name="lgu_chunks")
+print(f"DEBUG: collection count = {collection.count()}")
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
