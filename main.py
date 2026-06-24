@@ -19,7 +19,19 @@ app.add_middleware(
 
 print("Loading embedding model...")
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+import os
+import zipfile
+import urllib.request
 
+CHROMA_DB_URL = "https://github.com/zaryabmalik314-code/LGU-CHATBOT/releases/download/chromadb-v1/chroma_db.zip"
+
+if not os.path.exists("chroma_db"):
+    print("chroma_db not found, downloading...")
+    urllib.request.urlretrieve(CHROMA_DB_URL, "chroma_db.zip")
+    print("Download complete, extracting...")
+    with zipfile.ZipFile("chroma_db.zip", "r") as zip_ref:
+        zip_ref.extractall(".")
+    print("chroma_db ready.")
 chroma_client = chromadb.PersistentClient(path="chroma_db")
 collection = chroma_client.get_or_create_collection(name="lgu_chunks")
 
