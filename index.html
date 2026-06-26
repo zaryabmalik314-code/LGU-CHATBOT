@@ -515,6 +515,40 @@
 
 </div>
 
+<script type="module">
+  // ---------- Firebase / Firestore setup ----------
+  import { auth, db } from "./firebase-config.js";
+  import {
+    collection,
+    addDoc,
+    query,
+    orderBy,
+    getDocs,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  window.firebaseDb = db;
+  window.firestoreFns = { collection, addDoc, query, orderBy, getDocs, serverTimestamp };
+
+  // Reuse the same lguUser stored at login (set by login.html)
+  let lguUser = null;
+  try {
+    lguUser = JSON.parse(localStorage.getItem("lguUser"));
+  } catch (e) {
+    lguUser = null;
+  }
+
+  if (lguUser && lguUser.uid) {
+    window.currentUid = lguUser.uid;
+  } else {
+    // No valid user info — bounce back to login (mirrors the existing guard)
+    window.location.href = "login.html";
+  }
+
+  // Let the rest of the page know Firebase is ready and which uid to use
+  window.dispatchEvent(new CustomEvent("firebaseReady", { detail: { uid: window.currentUid } }));
+</script>
+
 <script>
 (function(){
   const API_URL = "https://lgu-chatbot-production.up.railway.app/ask";
@@ -735,6 +769,9 @@
       const data = await res.json();
       removeTypingIndicator();
       addBotMessage(data.answer || '(No answer returned)', data.sources || []);
+
+      // Save this Q&A pair to Firestore under the logged-in user, if available
+      saveMessageToFirestore(question.trim(), data.answer || '', data.sources || []);
     } catch (err) {
       removeTypingIndicator();
       addErrorMessage(
@@ -743,6 +780,58 @@
     } finally {
       sendBtn.disabled = false;
     }
+  }
+
+  // ---------- Firestore: save and load persistent chat history ----------
+  async function saveMessageToFirestore(question, answer, sources){
+    if (!window.currentUid || !window.firebaseDb) return; // Firebase not ready yet, skip silently
+    try {
+      const { collection, addDoc, serverTimestamp } = window.firestoreFns;
+      await addDoc(collection(window.firebaseDb, "users", window.currentUid, "messages"), {
+        question: question,
+        answer: answer,
+        sources: sources,
+        timestamp: serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Failed to save message to Firestore:", err);
+      // Don't interrupt the user's chat experience over a save failure
+    }
+  }
+
+  async function loadChatHistory(uid){
+    if (!uid || !window.firebaseDb) return;
+    try {
+      const { collection, query, orderBy, getDocs } = window.firestoreFns;
+      const q = query(
+        collection(window.firebaseDb, "users", uid, "messages"),
+        orderBy("timestamp", "asc")
+      );
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        removeWelcome();
+      }
+
+      snapshot.forEach((doc) => {
+        const msg = doc.data();
+        addUserMessage(msg.question);
+        addBotMessage(msg.answer, msg.sources || []);
+      });
+    } catch (err) {
+      console.error("Failed to load chat history:", err);
+    }
+  }
+
+  // Load history once the Firestore module script confirms it's ready
+  window.addEventListener("firebaseReady", (e) => {
+    const uid = e.detail && e.detail.uid;
+    if (uid) loadChatHistory(uid);
+  });
+
+  // In case the firebaseReady event fired before this script ran, check directly too
+  if (window.currentUid) {
+    loadChatHistory(window.currentUid);
   }
 
   // ---------- Input bar behavior ----------
