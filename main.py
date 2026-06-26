@@ -1,5 +1,7 @@
 import os
 import re
+import zipfile
+import requests
 from collections import defaultdict
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +18,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+CHROMA_DB_URL = "https://github.com/zaryabmalik314-code/LGU-CHATBOT/releases/download/chromadb-v1/chroma_db.zip"
+
+if not os.path.exists("chroma_db"):
+    print("chroma_db not found, downloading...")
+    response = requests.get(CHROMA_DB_URL, stream=True, allow_redirects=True)
+    response.raise_for_status()
+    with open("chroma_db.zip", "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+    print(f"Download complete ({os.path.getsize('chroma_db.zip')} bytes), extracting...")
+    with zipfile.ZipFile("chroma_db.zip", "r") as zip_ref:
+        zip_ref.extractall(".")
+    print("chroma_db ready.")
+
+print("=== chroma_db contents ===")
+for root, dirs, files in os.walk("chroma_db"):
+    for f in files:
+        fp = os.path.join(root, f)
+        print(f"{fp} — {os.path.getsize(fp)} bytes")
+print("=== end contents ===")
 
 print("Loading embedding model...")
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
