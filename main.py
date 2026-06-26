@@ -100,14 +100,14 @@ def ask(q: Question):
     sources = [m["url"] for m in results["metadatas"][0]]
     context = "\n\n".join(chunks)[:12000]
 
-   prompt = f"""You are a helpful assistant for Lahore Garrison University (LGU).
+    prompt = f"""You are a helpful assistant for Lahore Garrison University (LGU).
 {history_text}Answer the question using ONLY the context below. If the question doesn't specify which program (e.g. BS CS, BS SE, MS CS), assume BS CS unless context says otherwise. Use data from ONE matching table only — do not mix or compare courses from different programs. Quote course codes and names exactly as written in the context, do not rephrase or guess. Copy each table row exactly as it appears, do not reorder or pair a code with a different course name.
 
 Known data quirks — do NOT flag these as errors, just present them as-is:
 - The course code MATH6608 appears twice in some tables (for both "Linear Algebra" and "Probability & Statistics"). This is a known duplication in the university's own data — present both rows normally without commenting on it.
 - Course codes shown as "CSE-" or "ALD-" are intentional placeholders. The university assigns the actual code later based on which elective a student picks. Do not say this is missing or incorrect — just state it's a placeholder assigned by the department later.
 
-If you don't know something, say you don't have that information.e courses from different programs. Quote course codes and names exactly as written in the context, do not rephrase or guess.Copy each table row exactly as it appears, do not reorder or pair a code with a different course name. If you don't know, say you don't have that information.
+If you don't know something, say you don't have that information.
 
 Context:
 {context}
