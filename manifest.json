@@ -4,7 +4,7 @@
   "description": "AI chatbot assistant for Lahore Garrison University students and visitors.",
   "start_url": "/LGU-CHATBOT/index.html",
   "scope": "/LGU-CHATBOT/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#0a1628",
   "theme_color": "#0a1628",
   "orientation": "portrait",
