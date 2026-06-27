@@ -47,6 +47,50 @@ chroma_client = chromadb.PersistentClient(path="chroma_db")
 collection = chroma_client.get_or_create_collection(name="lgu_chunks")
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
+
+# Distance threshold for ChromaDB results. Lower distance = better match.
+# If the closest chunk's distance is above this, we treat it as "not found
+# in our data" and fall back to a web search instead of forcing an answer
+# out of irrelevant context. Tune this after watching real distances in logs.
+CHROMA_DISTANCE_THRESHOLD = 1.1
+
+
+def web_search_fallback(question: str):
+    """Search the web for a general/common question that isn't covered by
+    LGU's own data. Returns (context_text, source_urls). Returns (None, [])
+    if the search fails or no key is configured."""
+    if not TAVILY_API_KEY:
+        return None, []
+    try:
+        resp = requests.post(
+            "https://api.tavily.com/search",
+            json={
+                "api_key": TAVILY_API_KEY,
+                "query": question,
+                "search_depth": "basic",
+                "max_results": 4,
+            },
+            timeout=8,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        results = data.get("results", [])
+        if not results:
+            return None, []
+        context_parts = []
+        urls = []
+        for r in results:
+            content = r.get("content", "")
+            if content:
+                context_parts.append(content)
+            url = r.get("url")
+            if url:
+                urls.append(url)
+        return "\n\n".join(context_parts)[:6000], urls
+    except Exception as e:
+        print(f"Web search fallback failed: {e}")
+        return None, []
 
 session_memory = defaultdict(list)
 MAX_HISTORY = 6
@@ -58,6 +102,9 @@ CASUAL_PATTERNS = {
     r"^(thanks|thank you|thx|ty)[!.]*$": "You're welcome! Let me know if you need anything else.",
     r"^(bye|goodbye|see ya|see you|cya)[!.]*$": "Goodbye! Have a great day 👋",
     r"^(ok|okay|cool|nice|great)[!.]*$": "👍 Anything else I can help with?",
+    r"^who (made|built|created|developed) you[?!.]*$": "I was built for Lahore Garrison University to help students and visitors with their queries. How can I assist you today?",
+    r"^who (owns|is behind) you[?!.]*$": "I was built for Lahore Garrison University to help students and visitors with their queries. How can I assist you today?",
+    r"^(what are you|who are you)[?!.]*$": "I'm the LGU Assistant — here to help with admissions, programs, fees, and other university-related questions.",
 }
 
 
@@ -94,14 +141,42 @@ def ask(q: Question):
     query_embedding = embed_model.encode([question]).tolist()
     results = collection.query(
         query_embeddings=query_embedding,
-        n_results=10
+        n_results=10,
+        include=["documents", "metadatas", "distances"]
     )
     chunks = results["documents"][0]
     sources = [m["url"] for m in results["metadatas"][0]]
-    context = "\n\n".join(chunks)[:12000]
+    distances = results["distances"][0]
+    best_distance = min(distances) if distances else None
+    print(f"Query: '{question}' | best chroma distance: {best_distance}")
+
+    used_web_fallback = False
+    if best_distance is None or best_distance > CHROMA_DISTANCE_THRESHOLD:
+        web_context, web_sources = web_search_fallback(question)
+        if web_context:
+            context = web_context
+            sources = web_sources
+            used_web_fallback = True
+        else:
+            context = "\n\n".join(chunks)[:12000]
+    else:
+        context = "\n\n".join(chunks)[:12000]
+
+    if used_web_fallback:
+        fallback_note = "The context below comes from a general web search because this question isn't covered in LGU's own records. Answer normally using this context, and you don't need to mention where the information came from unless asked."
+    else:
+        fallback_note = ""
 
     prompt = f"""You are a helpful assistant for Lahore Garrison University (LGU).
-{history_text}Answer the question using ONLY the context below. If the question doesn't specify which program (e.g. BS CS, BS SE, MS CS), assume BS CS unless context says otherwise. Use data from ONE matching table only — do not mix or compare courses from different programs. Quote course codes and names exactly as written in the context, do not rephrase or guess. Copy each table row exactly as it appears, do not reorder or pair a code with a different course name.
+{history_text}If the user's message is short, vague, or seems to reference a previous list/answer (e.g. "3", "the second one", "ok then answer", "tell me more"), use the conversation history above to figure out what they mean before asking for clarification. Only ask the user to clarify if the conversation history truly doesn't help.
+
+If the question is something inappropriate, harmful, or completely unrelated to any reasonable use case (e.g. asking for help with something dangerous or unrelated technical tasks like writing unrelated code), politely say you're focused on helping with LGU-related queries and general questions, and ask if they have something else in mind.
+
+If the user asks who built you, who developed you, who owns you, or what company/team is behind you, simply say you were built for Lahore Garrison University to help students and visitors with their queries. Do not mention specific AI model names, providers, or technical implementation details.
+
+{fallback_note}
+
+Answer the question using ONLY the context below. If the question doesn't specify which program (e.g. BS CS, BS SE, MS CS), assume BS CS unless context says otherwise. Use data from ONE matching table only — do not mix or compare courses from different programs. Quote course codes and names exactly as written in the context, do not rephrase or guess. Copy each table row exactly as it appears, do not reorder or pair a code with a different course name.
 
 Known data quirks — do NOT flag these as errors, just present them as-is:
 - The course code MATH6608 appears twice in some tables (for both "Linear Algebra" and "Probability & Statistics"). This is a known duplication in the university's own data — present both rows normally without commenting on it.
