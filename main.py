@@ -95,6 +95,38 @@ def web_search_fallback(question: str):
 session_memory = defaultdict(list)
 MAX_HISTORY = 6
 
+# ---------- Web-fallback rate limiting ----------
+# This bot is meant for LGU-related queries. The web search fallback exists
+# only to handle the occasional common/general question. To stop it being
+# used as a general-purpose chatbot (and to protect the free Tavily quota),
+# we cap how often any one session can trigger it, plus a global daily cap.
+MAX_WEB_SEARCHES_PER_SESSION = 3
+MAX_WEB_SEARCHES_PER_DAY = 30
+
+session_web_search_count = defaultdict(int)
+daily_web_search_count = 0
+daily_web_search_date = None
+
+
+def _check_and_register_web_search(session_id: str):
+    """Returns True if a web search is allowed right now, and registers the
+    usage. Returns False if either the per-session or daily cap is hit."""
+    global daily_web_search_count, daily_web_search_date
+    import datetime
+    today = datetime.date.today()
+    if daily_web_search_date != today:
+        daily_web_search_date = today
+        daily_web_search_count = 0
+
+    if daily_web_search_count >= MAX_WEB_SEARCHES_PER_DAY:
+        return False
+    if session_web_search_count[session_id] >= MAX_WEB_SEARCHES_PER_SESSION:
+        return False
+
+    daily_web_search_count += 1
+    session_web_search_count[session_id] += 1
+    return True
+
 CASUAL_PATTERNS = {
     r"^h(i|ey|ello)+[!.]*$": "Hey there! 👋 How can I help you today?",
     r"^good (morning|afternoon|evening)[!.]*$": "Good day! How can I help you?",
@@ -151,16 +183,28 @@ def ask(q: Question):
     print(f"Query: '{question}' | best chroma distance: {best_distance}")
 
     used_web_fallback = False
+    rate_limited = False
     if best_distance is None or best_distance > CHROMA_DISTANCE_THRESHOLD:
-        web_context, web_sources = web_search_fallback(question)
-        if web_context:
-            context = web_context
-            sources = web_sources
-            used_web_fallback = True
+        if _check_and_register_web_search(session_id):
+            web_context, web_sources = web_search_fallback(question)
+            if web_context:
+                context = web_context
+                sources = web_sources
+                used_web_fallback = True
+            else:
+                context = "\n\n".join(chunks)[:12000]
         else:
+            rate_limited = True
             context = "\n\n".join(chunks)[:12000]
     else:
         context = "\n\n".join(chunks)[:12000]
+
+    if rate_limited:
+        answer = "I'm primarily built to help with LGU-related questions — admissions, programs, fees, faculty, and campus life. I'm not able to look up general questions right now, but feel free to ask me anything about the university!"
+        session_memory[session_id].append({"question": question, "answer": answer})
+        if len(session_memory[session_id]) > MAX_HISTORY:
+            session_memory[session_id] = session_memory[session_id][-MAX_HISTORY:]
+        return {"answer": answer, "sources": [], "session_id": session_id}
 
     if used_web_fallback:
         fallback_note = "The context below comes from a general web search because this question isn't covered in LGU's own records. Answer normally using this context, and you don't need to mention where the information came from unless asked."
