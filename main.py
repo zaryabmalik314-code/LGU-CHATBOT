@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import chromadb
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, CrossEncoder
 from groq import Groq
 
 app = FastAPI()
@@ -43,6 +43,9 @@ print("=== end contents ===")
 print("Loading embedding model...")
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
 
+print("Loading reranker model...")
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
 chroma_client = chromadb.PersistentClient(path="chroma_db")
 collection = chroma_client.get_or_create_collection(name="lgu_chunks")
 
@@ -54,6 +57,11 @@ TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 # in our data" and fall back to a web search instead of forcing an answer
 # out of irrelevant context. Tune this after watching real distances in logs.
 CHROMA_DISTANCE_THRESHOLD = 1.1
+
+# How many chunks to pull from Chroma before reranking, and how many to
+# actually keep for the final context after reranking.
+CHROMA_RETRIEVE_K = 10
+RERANK_KEEP_K = 5
 
 
 def web_search_fallback(question: str):
@@ -173,7 +181,7 @@ def ask(q: Question):
     query_embedding = embed_model.encode([question]).tolist()
     results = collection.query(
         query_embeddings=query_embedding,
-        n_results=10,
+        n_results=CHROMA_RETRIEVE_K,
         include=["documents", "metadatas", "distances"]
     )
     chunks = results["documents"][0]
@@ -181,6 +189,19 @@ def ask(q: Question):
     distances = results["distances"][0]
     best_distance = min(distances) if distances else None
     print(f"Query: '{question}' | best chroma distance: {best_distance}")
+
+    # Rerank the top-K chroma hits with a cross-encoder for real relevance,
+    # then keep only the best few for the final context — sharper answers,
+    # fewer tokens for Groq to process. We keep `distances` from the raw
+    # chroma query untouched since it's still used for the fallback decision
+    # below (it reflects how close the best raw match was).
+    if chunks:
+        pairs = [[question, c] for c in chunks]
+        rerank_scores = reranker.predict(pairs)
+        ranked = sorted(zip(rerank_scores, chunks, sources), key=lambda x: x[0], reverse=True)
+        ranked = ranked[:RERANK_KEEP_K]
+        chunks = [c for _, c, _ in ranked]
+        sources = [s for _, _, s in ranked]
 
     used_web_fallback = False
     rate_limited = False
@@ -235,7 +256,7 @@ Question: {question}
 Answer:"""
 
     response = groq_client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": "You are a helpful assistant for LGU. Answer concisely for simple questions, but show full lists or tables when asked."},
             {"role": "user", "content": prompt}
