@@ -60,8 +60,8 @@ CHROMA_DISTANCE_THRESHOLD = 1.1
 
 # How many chunks to pull from Chroma before reranking, and how many to
 # actually keep for the final context after reranking.
-CHROMA_RETRIEVE_K = 10
-RERANK_KEEP_K = 5
+CHROMA_RETRIEVE_K = 8
+RERANK_KEEP_K = 4
 
 
 def web_search_fallback(question: str):
@@ -339,9 +339,10 @@ Answer:"""
     response = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant for LGU. Answer concisely for simple questions, but show full lists or tables when asked."},
+            {"role": "system", "content": "You are a helpful assistant for LGU. Keep answers short and to the point by default (2-4 sentences). Only give a longer, detailed answer or a full table/list if the user explicitly asks for details, a list, or a table."},
             {"role": "user", "content": prompt}
-        ]
+        ],
+        max_tokens=800,
     )
     answer = response.choices[0].message.content
 
