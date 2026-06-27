@@ -156,6 +156,57 @@ def get_casual_reply(message: str):
     return None
 
 
+def classify_intent_with_groq(message: str) -> str:
+    """Second-stage check for messages the regex fast-path above didn't
+    catch. Uses a small, fast Groq model to decide whether this is casual
+    chat (including Roman Urdu fillers like 'acha', 'theek hai', 'haan',
+    'bas', 'chalo') or an actual question that needs the RAG pipeline.
+    Falls back to 'university_query' on any error, so RAG still runs as a
+    safe default and nothing breaks if Groq is briefly unavailable."""
+    router_prompt = f"""Classify the user's message into exactly ONE category. Respond with ONLY the category word, nothing else, no punctuation.
+
+Categories:
+- chitchat: greetings, thanks, acknowledgments, filler words, casual talk in English or Roman Urdu (examples: "acha", "acha listen", "theek hai", "haan", "bas", "chalo", "ok then", "got it", "achaaa")
+- university_query: anything that is or could be a real question, even if short or vague (examples: "fees?", "BSCS", "admission", "tell me more", "3")
+
+Message: "{message}"
+Category:"""
+
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": router_prompt}],
+            temperature=0,
+            max_tokens=10,
+        )
+        category = response.choices[0].message.content.strip().lower()
+        if category not in ("chitchat", "university_query"):
+            category = "university_query"
+        return category
+    except Exception as e:
+        print(f"Intent router failed, defaulting to university_query: {e}")
+        return "university_query"
+
+
+def get_chitchat_reply(message: str) -> str:
+    """Generates a brief, natural reply for messages the Groq router
+    classified as chitchat (i.e. ones the regex fast-path didn't already
+    handle)."""
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "You are a friendly assistant for Lahore Garrison University (LGU). The user just sent a casual/filler message (e.g. 'acha', 'ok then', 'haan'). Reply briefly and naturally in 1 short sentence, and invite them to ask their question."},
+                {"role": "user", "content": message},
+            ],
+            temperature=0.5,
+            max_tokens=40,
+        )
+        return response.choices[0].message.content
+    except Exception:
+        return "Got it! Let me know what you'd like to ask. 🙂"
+
+
 class Question(BaseModel):
     question: str
     session_id: str = "default"
@@ -169,6 +220,14 @@ def ask(q: Question):
     casual_reply = get_casual_reply(question)
     if casual_reply:
         return {"answer": casual_reply, "sources": [], "session_id": session_id}
+
+    # Regex didn't catch it — let Groq decide if this is still casual chat
+    # (e.g. Roman Urdu like "acha listen") before we run the full RAG pipeline.
+    if len(question.strip()) <= 40:  # only bother routing short messages
+        intent = classify_intent_with_groq(question)
+        if intent == "chitchat":
+            answer = get_chitchat_reply(question)
+            return {"answer": answer, "sources": [], "session_id": session_id}
 
     history = session_memory[session_id]
     history_text = ""
