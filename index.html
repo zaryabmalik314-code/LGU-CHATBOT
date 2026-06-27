@@ -11,6 +11,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>LGU Assistant</title>
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://www.gstatic.com">
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <style>
   :root{
     --navy-950:#060d18;
@@ -444,6 +448,40 @@
   }
   .voice-hint.active{color:var(--danger);}
 
+  /* ---------- History loading overlay ---------- */
+  #history-loading{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    background:var(--navy-900);
+    z-index:50;
+    transition:opacity .35s ease;
+  }
+  #history-loading.fade-out{
+    opacity:0;
+    pointer-events:none;
+  }
+  .loader-ring{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    border:3px solid var(--navy-700);
+    border-top-color:var(--gold-500);
+    animation:spin .8s linear infinite;
+  }
+  #history-loading p{
+    font-size:13px;
+    color:var(--ink-400);
+    letter-spacing:.02em;
+  }
+  @keyframes spin{
+    to{transform:rotate(360deg);}
+  }
+
   /* ---------- Mobile ---------- */
   @media (max-width:480px){
     .app{max-width:100%;}
@@ -460,6 +498,11 @@
 <body>
 
 <div class="app">
+
+  <div id="history-loading">
+    <div class="loader-ring"></div>
+    <p>Loading your conversation…</p>
+  </div>
 
   <!-- Header -->
   <header class="header">
@@ -800,8 +843,15 @@
     }
   }
 
+  function hideHistoryLoader(){
+    const loader = document.getElementById("history-loading");
+    if (!loader) return;
+    loader.classList.add("fade-out");
+    setTimeout(() => loader.remove(), 400);
+  }
+
   async function loadChatHistory(uid){
-    if (!uid || !window.firebaseDb) return;
+    if (!uid || !window.firebaseDb) { hideHistoryLoader(); return; }
     try {
       const { collection, query, orderBy, getDocs } = window.firestoreFns;
       const q = query(
@@ -821,6 +871,8 @@
       });
     } catch (err) {
       console.error("Failed to load chat history:", err);
+    } finally {
+      hideHistoryLoader();
     }
   }
 
@@ -834,6 +886,10 @@
   if (window.currentUid) {
     loadChatHistory(window.currentUid);
   }
+
+  // Safety net: if Firebase never responds (e.g. network issue), don't leave the
+  // user staring at a spinner forever
+  setTimeout(hideHistoryLoader, 8000);
 
   // ---------- Input bar behavior ----------
   function autoResize(){
