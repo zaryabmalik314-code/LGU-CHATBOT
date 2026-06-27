@@ -156,6 +156,25 @@ def get_casual_reply(message: str):
     return None
 
 
+# Keywords that strongly indicate a real LGU question. If any of these
+# appear, we skip the Groq router entirely and go straight to RAG — no
+# need to spend an extra API round-trip "deciding" on something obvious.
+LGU_KEYWORDS = (
+    "fee", "fees", "admission", "course", "courses", "program", "programme",
+    "degree", "bscs", "bsse", "bsai", "bba", "mba", "mscs", "faculty",
+    "teacher", "professor", "campus", "hostel", "scholarship", "merit",
+    "deadline", "apply", "application", "semester", "credit", "exam",
+    "result", "fee structure", "department", "hod", "dean", "registrar",
+    "transcript", "challan", "library", "timing", "schedule", "syllabus",
+    "?",
+)
+
+
+def looks_like_real_question(message: str) -> bool:
+    text = message.strip().lower()
+    return any(keyword in text for keyword in LGU_KEYWORDS)
+
+
 def classify_intent_with_groq(message: str) -> str:
     """Second-stage check for messages the regex fast-path above didn't
     catch. Uses a small, fast Groq model to decide whether this is casual
@@ -223,7 +242,10 @@ def ask(q: Question):
 
     # Regex didn't catch it — let Groq decide if this is still casual chat
     # (e.g. Roman Urdu like "acha listen") before we run the full RAG pipeline.
-    if len(question.strip()) <= 40:  # only bother routing short messages
+    # Skip this check entirely if the message already looks like a real
+    # question (has a "?" or an obvious LGU keyword) — saves a Groq round
+    # trip on the common case and avoids slowing down real questions.
+    if len(question.strip()) <= 40 and not looks_like_real_question(question):
         intent = classify_intent_with_groq(question)
         if intent == "chitchat":
             answer = get_chitchat_reply(question)
