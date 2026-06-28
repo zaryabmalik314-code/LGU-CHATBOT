@@ -191,6 +191,30 @@ def expand_acronyms(text: str) -> str:
     return expanded
 
 
+# Direct lookup for specific program pages that are mostly course-code
+# tables (e.g. "CMAI-6102 | Introduction to AI | 3 | Major"). Tables like
+# that embed poorly against natural-language questions, so vector search
+# alone often misses them even when they exist in the database. For known
+# programs, we bypass ranking entirely and force-fetch every chunk for that
+# exact URL via a metadata filter, guaranteeing the real roadmap is used.
+# Add more entries here any time a specific program's details aren't
+# surfacing correctly - just need the program's keywords and its exact URL.
+PROGRAM_URL_LOOKUP = {
+    "computational mathematics and artificial intelligence": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence/",
+    "cmai": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence/",
+}
+
+
+def find_forced_url(question: str):
+    """Check if the question matches a known program in PROGRAM_URL_LOOKUP.
+    Returns the exact URL to force-fetch, or None if no match."""
+    text = question.lower()
+    for keyword, url in PROGRAM_URL_LOOKUP.items():
+        if keyword in text:
+            return url
+    return None
+
+
 # Keywords that strongly indicate a real LGU question. If any of these
 # appear, we skip the Groq router entirely and go straight to RAG — no
 # need to spend an extra API round-trip "deciding" on something obvious.
@@ -306,6 +330,23 @@ def ask(q: Question):
     distances = results["distances"][0]
     best_distance = min(distances) if distances else None
     print(f"Query: '{question}' | best chroma distance: {best_distance}")
+
+    # If the question matches a known program with table-heavy content that
+    # vector search tends to miss, force-fetch every chunk for that exact
+    # page directly and prepend it to whatever vector search found. This
+    # guarantees the real roadmap/course data is included regardless of how
+    # it ranks by embedding similarity.
+    forced_url = find_forced_url(question)
+    if forced_url:
+        forced_results = collection.get(
+            where={"url": forced_url},
+            include=["documents", "metadatas"],
+        )
+        if forced_results["documents"]:
+            print(f"  -> Forced fetch: found {len(forced_results['documents'])} chunks for {forced_url}")
+            chunks = forced_results["documents"] + chunks
+            sources = [m["url"] for m in forced_results["metadatas"]] + sources
+            best_distance = 0.0  # treat as a confident match, skip web fallback
 
     # NOTE: We previously reran every chunk through a cross-encoder reranker
     # here for sharper relevance. On Railway's free-tier CPU that step alone
