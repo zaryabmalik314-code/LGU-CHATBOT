@@ -336,7 +336,7 @@ def ask(q: Question):
     # page directly and prepend it to whatever vector search found. This
     # guarantees the real roadmap/course data is included regardless of how
     # it ranks by embedding similarity.
-    forced_url = find_forced_url(question)
+    forced_url = find_forced_url(embedding_query)
     if forced_url:
         forced_results = collection.get(
             where={"url": forced_url},
