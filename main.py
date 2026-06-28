@@ -52,6 +52,7 @@ reranker = None  # kept as a variable so re-enabling later is a one-line change
 
 chroma_client = chromadb.PersistentClient(path="chroma_db")
 collection = chroma_client.get_or_create_collection(name="lgu_chunks")
+print(f"=== Chroma collection 'lgu_chunks' loaded with {collection.count()} chunks ===")
 
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
@@ -339,6 +340,8 @@ Known data quirks — do NOT flag these as errors, just present them as-is:
 - Course codes shown as "CSE-" or "ALD-" are intentional placeholders. The university assigns the actual code later based on which elective a student picks. Do not say this is missing or incorrect — just state it's a placeholder assigned by the department later.
 
 If you don't know something, say you don't have that information.
+
+If the question is about whether admissions are currently open, the current admission schedule, or application deadlines, and the context does not contain a specific current date or status, say you don't have the live status, and tell the user they can check by calling the Admission Office at 0322 2757543 or 042 37181827, or by visiting the "Apply" page on the LGU website.
 
 Context:
 {context}
