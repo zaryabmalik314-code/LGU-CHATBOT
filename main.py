@@ -43,8 +43,12 @@ print("=== end contents ===")
 print("Loading embedding model...")
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-print("Loading reranker model...")
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+print("Reranker disabled for performance (see CHROMA_RETRIEVE_K/RERANK_KEEP_K comments below) — not loading cross-encoder.")
+reranker = None  # kept as a variable so re-enabling later is a one-line change
+# To re-enable: uncomment the two lines below and also see the commented
+# rerank block further down in the /ask endpoint.
+# print("Loading reranker model...")
+# reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 chroma_client = chromadb.PersistentClient(path="chroma_db")
 collection = chroma_client.get_or_create_collection(name="lgu_chunks")
@@ -61,7 +65,7 @@ CHROMA_DISTANCE_THRESHOLD = 1.1
 # How many chunks to pull from Chroma before reranking, and how many to
 # actually keep for the final context after reranking.
 CHROMA_RETRIEVE_K = 8
-RERANK_KEEP_K = 4
+RERANK_KEEP_K = 5
 
 
 def web_search_fallback(question: str):
@@ -271,18 +275,24 @@ def ask(q: Question):
     best_distance = min(distances) if distances else None
     print(f"Query: '{question}' | best chroma distance: {best_distance}")
 
-    # Rerank the top-K chroma hits with a cross-encoder for real relevance,
-    # then keep only the best few for the final context — sharper answers,
-    # fewer tokens for Groq to process. We keep `distances` from the raw
-    # chroma query untouched since it's still used for the fallback decision
-    # below (it reflects how close the best raw match was).
-    if chunks:
-        pairs = [[question, c] for c in chunks]
-        rerank_scores = reranker.predict(pairs)
-        ranked = sorted(zip(rerank_scores, chunks, sources), key=lambda x: x[0], reverse=True)
-        ranked = ranked[:RERANK_KEEP_K]
-        chunks = [c for _, c, _ in ranked]
-        sources = [s for _, _, s in ranked]
+    # NOTE: We previously reran every chunk through a cross-encoder reranker
+    # here for sharper relevance. On Railway's free-tier CPU that step alone
+    # was taking ~20-30 seconds per request (a full transformer forward pass
+    # per chunk, no GPU). Chroma already returns results sorted by distance
+    # (best match first), so we just trust that ordering and keep the top N.
+    # This trades a small amount of relevance precision for a massive speed
+    # win. If you upgrade to a host with more CPU/a GPU later, the reranker
+    # can be re-enabled by uncommenting it below.
+    chunks = chunks[:RERANK_KEEP_K]
+    sources = sources[:RERANK_KEEP_K]
+    # --- to re-enable reranking later, replace the two lines above with: ---
+    # if chunks:
+    #     pairs = [[question, c] for c in chunks]
+    #     rerank_scores = reranker.predict(pairs)
+    #     ranked = sorted(zip(rerank_scores, chunks, sources), key=lambda x: x[0], reverse=True)
+    #     ranked = ranked[:RERANK_KEEP_K]
+    #     chunks = [c for _, c, _ in ranked]
+    #     sources = [s for _, _, s in ranked]
 
     used_web_fallback = False
     rate_limited = False
