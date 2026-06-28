@@ -162,6 +162,35 @@ def get_casual_reply(message: str):
     return None
 
 
+# Common abbreviations students use that don't exactly match the full
+# wording on LGU's own pages. Expanding these before embedding helps the
+# vector search find pages that spell things out in full (e.g. a page
+# titled "...Artificial Intelligence" won't score as close to a query that
+# just says "AI" unless we expand it first).
+ACRONYM_EXPANSIONS = {
+    r"\bAI\b": "Artificial Intelligence",
+    r"\bCS\b": "Computer Science",
+    r"\bIT\b": "Information Technology",
+    r"\bSE\b": "Software Engineering",
+    r"\bDS\b": "Data Science",
+    r"\bBBA\b": "Bachelor of Business Administration",
+    r"\bMBA\b": "Master of Business Administration",
+    r"\bCMAI\b": "Computational Mathematics and Artificial Intelligence",
+}
+
+
+def expand_acronyms(text: str) -> str:
+    """Expand common abbreviations so the embedded query is more likely to
+    match full-text page titles/content. Appends the expansion alongside
+    the original text rather than replacing it, so we don't lose context
+    if the acronym was actually correct as-is."""
+    expanded = text
+    for pattern, full_form in ACRONYM_EXPANSIONS.items():
+        if re.search(pattern, text, re.IGNORECASE):
+            expanded += f" {full_form}"
+    return expanded
+
+
 # Keywords that strongly indicate a real LGU question. If any of these
 # appear, we skip the Groq router entirely and go straight to RAG — no
 # need to spend an extra API round-trip "deciding" on something obvious.
@@ -265,7 +294,8 @@ def ask(q: Question):
             history_text += f"User: {pair['question']}\nAssistant: {pair['answer']}\n"
         history_text += "\n"
 
-    query_embedding = embed_model.encode([question]).tolist()
+    embedding_query = expand_acronyms(question)
+    query_embedding = embed_model.encode([embedding_query]).tolist()
     results = collection.query(
         query_embeddings=query_embedding,
         n_results=CHROMA_RETRIEVE_K,
