@@ -67,6 +67,7 @@ CHROMA_DISTANCE_THRESHOLD = 1.1
 # actually keep for the final context after reranking.
 CHROMA_RETRIEVE_K = 15
 RERANK_KEEP_K = 8
+print(f"=== Settings: CHROMA_RETRIEVE_K={CHROMA_RETRIEVE_K}, RERANK_KEEP_K={RERANK_KEEP_K} ===")
 
 
 def web_search_fallback(question: str):
