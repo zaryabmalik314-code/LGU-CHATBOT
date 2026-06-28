@@ -65,8 +65,8 @@ CHROMA_DISTANCE_THRESHOLD = 1.1
 
 # How many chunks to pull from Chroma before reranking, and how many to
 # actually keep for the final context after reranking.
-CHROMA_RETRIEVE_K = 8
-RERANK_KEEP_K = 5
+CHROMA_RETRIEVE_K = 15
+RERANK_KEEP_K = 8
 
 
 def web_search_fallback(question: str):
