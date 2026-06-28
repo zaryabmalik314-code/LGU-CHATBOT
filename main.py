@@ -200,8 +200,8 @@ def expand_acronyms(text: str) -> str:
 # Add more entries here any time a specific program's details aren't
 # surfacing correctly - just need the program's keywords and its exact URL.
 PROGRAM_URL_LOOKUP = {
-    "computational mathematics and artificial intelligence": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence/",
-    "cmai": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence/",
+    "computational mathematics and artificial intelligence": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence",
+    "cmai": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence",
 }
 
 
@@ -338,15 +338,22 @@ def ask(q: Question):
     # it ranks by embedding similarity.
     forced_url = find_forced_url(embedding_query)
     if forced_url:
-        forced_results = collection.get(
-            where={"url": forced_url},
-            include=["documents", "metadatas"],
-        )
-        if forced_results["documents"]:
-            print(f"  -> Forced fetch: found {len(forced_results['documents'])} chunks for {forced_url}")
-            chunks = forced_results["documents"] + chunks
-            sources = [m["url"] for m in forced_results["metadatas"]] + sources
+        # Try both with and without trailing slash, since we can't always
+        # be sure how the URL is stored - this is still a cheap, indexed
+        # metadata filter, not a full collection scan.
+        forced_docs, forced_metas = [], []
+        for candidate in (forced_url, forced_url.rstrip("/"), forced_url.rstrip("/") + "/"):
+            res = collection.get(where={"url": candidate}, include=["documents", "metadatas"])
+            if res["documents"]:
+                forced_docs, forced_metas = res["documents"], res["metadatas"]
+                break
+        if forced_docs:
+            print(f"  -> Forced fetch: found {len(forced_docs)} chunks for {forced_url}")
+            chunks = forced_docs + chunks
+            sources = [m["url"] for m in forced_metas] + sources
             best_distance = 0.0  # treat as a confident match, skip web fallback
+        else:
+            print(f"  -> Forced fetch: WARNING - no chunks found for {forced_url}")
 
     # NOTE: We previously reran every chunk through a cross-encoder reranker
     # here for sharper relevance. On Railway's free-tier CPU that step alone
