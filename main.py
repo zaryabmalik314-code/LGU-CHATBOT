@@ -428,15 +428,19 @@ Context:
 Question: {question}
 Answer:"""
 
-    response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant for LGU. Keep answers short and to the point by default (2-4 sentences). Only give a longer, detailed answer or a full table/list if the user explicitly asks for details, a list, or a table."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=800,
-    )
-    answer = response.choices[0].message.content
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant for LGU. Keep answers short and to the point by default (2-4 sentences). Only give a longer, detailed answer or a full table/list if the user explicitly asks for details, a list, or a table."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=800,
+        )
+        answer = response.choices[0].message.content
+    except Exception as e:
+        print(f"Groq call failed in /ask: {e}")
+        answer = "I'm experiencing high demand right now — please try again in a few minutes."
 
     session_memory[session_id].append({"question": question, "answer": answer})
     if len(session_memory[session_id]) > MAX_HISTORY:
