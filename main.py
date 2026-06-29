@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import zipfile
 import requests
 from collections import defaultdict
@@ -292,11 +293,13 @@ class Question(BaseModel):
 
 @app.post("/ask")
 def ask(q: Question):
+    t0 = time.time()
     question = q.question
     session_id = q.session_id
 
     casual_reply = get_casual_reply(question)
     if casual_reply:
+        print(f"[TIMING] regex chitchat short-circuit: {time.time()-t0:.2f}s total")
         return {"answer": casual_reply, "sources": [], "session_id": session_id}
 
     # Regex didn't catch it — let Groq decide if this is still casual chat
@@ -305,9 +308,12 @@ def ask(q: Question):
     # question (has a "?" or an obvious LGU keyword) — saves a Groq round
     # trip on the common case and avoids slowing down real questions.
     if len(question.strip()) <= 40 and not looks_like_real_question(question):
+        t_intent_start = time.time()
         intent = classify_intent_with_groq(question)
+        print(f"[TIMING] intent classification: {time.time()-t_intent_start:.2f}s")
         if intent == "chitchat":
             answer = get_chitchat_reply(question)
+            print(f"[TIMING] chitchat reply total: {time.time()-t0:.2f}s")
             return {"answer": answer, "sources": [], "session_id": session_id}
 
     history = session_memory[session_id]
@@ -318,6 +324,7 @@ def ask(q: Question):
             history_text += f"User: {pair['question']}\nAssistant: {pair['answer']}\n"
         history_text += "\n"
 
+    t_embed_start = time.time()
     embedding_query = expand_acronyms(question)
     query_embedding = embed_model.encode([embedding_query]).tolist()
     results = collection.query(
@@ -325,6 +332,7 @@ def ask(q: Question):
         n_results=CHROMA_RETRIEVE_K,
         include=["documents", "metadatas", "distances"]
     )
+    print(f"[TIMING] embed + chroma query: {time.time()-t_embed_start:.2f}s")
     chunks = results["documents"][0]
     sources = [m["url"] for m in results["metadatas"][0]]
     distances = results["distances"][0]
@@ -376,9 +384,11 @@ def ask(q: Question):
 
     used_web_fallback = False
     rate_limited = False
+    t_fallback_start = time.time()
     if best_distance is None or best_distance > CHROMA_DISTANCE_THRESHOLD:
         if _check_and_register_web_search(session_id):
             web_context, web_sources = web_search_fallback(question)
+            print(f"[TIMING] web fallback search: {time.time()-t_fallback_start:.2f}s")
             if web_context:
                 context = web_context
                 sources = web_sources
@@ -428,6 +438,7 @@ Context:
 Question: {question}
 Answer:"""
 
+    t_groq_start = time.time()
     try:
         response = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
@@ -441,6 +452,8 @@ Answer:"""
     except Exception as e:
         print(f"Groq call failed in /ask: {e}")
         answer = "I'm experiencing high demand right now — please try again in a few minutes."
+    print(f"[TIMING] main groq answer call: {time.time()-t_groq_start:.2f}s")
+    print(f"[TIMING] TOTAL /ask request: {time.time()-t0:.2f}s")
 
     session_memory[session_id].append({"question": question, "answer": answer})
     if len(session_memory[session_id]) > MAX_HISTORY:
