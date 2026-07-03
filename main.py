@@ -57,6 +57,10 @@ print(f"=== Chroma collection 'lgu_chunks' loaded with {collection.count()} chun
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
+import google.generativeai as genai
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+
 # Distance threshold for ChromaDB results. Lower distance = better match.
 # If the closest chunk's distance is above this, we treat it as "not found
 # in our data" and fall back to a web search instead of forcing an answer
@@ -375,8 +379,22 @@ def ask(q: Question):
     #     sources = [s for _, _, s in ranked]
 
     used_web_fallback = False
-    rate_limited = False
     if best_distance is None or best_distance > CHROMA_DISTANCE_THRESHOLD:
+        used_gemini = False
+        try:
+            gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If you don't know, say so.\n\nQuestion: {question}"
+            gemini_resp = gemini_model.generate_content(gemini_prompt)
+            answer = gemini_resp.text
+            used_gemini = True
+        except Exception as e:
+            print(f"Gemini fallback failed: {e}")
+
+        if used_gemini:
+            session_memory[session_id].append({"question": question, "answer": answer})
+            if len(session_memory[session_id]) > MAX_HISTORY:
+                session_memory[session_id] = session_memory[session_id][-MAX_HISTORY:]
+            return {"answer": answer, "sources": [], "session_id": session_id}
+
         if _check_and_register_web_search(session_id):
             web_context, web_sources = web_search_fallback(question)
             if web_context:
@@ -386,17 +404,13 @@ def ask(q: Question):
             else:
                 context = "\n\n".join(chunks)[:12000]
         else:
-            rate_limited = True
-            context = "\n\n".join(chunks)[:12000]
+            answer = "I'm primarily built to help with LGU-related questions — admissions, programs, fees, faculty, and campus life. I'm not able to look up general questions right now, but feel free to ask me anything about the university!"
+            session_memory[session_id].append({"question": question, "answer": answer})
+            if len(session_memory[session_id]) > MAX_HISTORY:
+                session_memory[session_id] = session_memory[session_id][-MAX_HISTORY:]
+            return {"answer": answer, "sources": [], "session_id": session_id}
     else:
         context = "\n\n".join(chunks)[:12000]
-
-    if rate_limited:
-        answer = "I'm primarily built to help with LGU-related questions — admissions, programs, fees, faculty, and campus life. I'm not able to look up general questions right now, but feel free to ask me anything about the university!"
-        session_memory[session_id].append({"question": question, "answer": answer})
-        if len(session_memory[session_id]) > MAX_HISTORY:
-            session_memory[session_id] = session_memory[session_id][-MAX_HISTORY:]
-        return {"answer": answer, "sources": [], "session_id": session_id}
 
     if used_web_fallback:
         fallback_note = "The context below comes from a general web search because this question isn't covered in LGU's own records. Answer normally using this context, and you don't need to mention where the information came from unless asked."
