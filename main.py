@@ -218,6 +218,15 @@ PROGRAM_URL_LOOKUP = {
     "maryam fatima": "https://lgu.edu.pk/faculty-of-mathematics",
     "sumaira ajmal": "https://lgu.edu.pk/faculty-of-mathematics",
     "ayesha saeed": "https://lgu.edu.pk/faculty-of-mathematics",
+    "admission": "https://lgu.edu.pk/admissions",
+    "admissions": "https://lgu.edu.pk/admissions",
+    "math department": "https://lgu.edu.pk/department-of-mathematics",
+    "maths department": "https://lgu.edu.pk/department-of-mathematics",
+    "mathematics department": "https://lgu.edu.pk/department-of-mathematics",
+    "merit list": "https://lgu.edu.pk/merit-list",
+    "merit": "https://lgu.edu.pk/merit-list",
+    "policy": "https://lgu.edu.pk/policies",
+    "policies": "https://lgu.edu.pk/policies-2",
 }
 
 
@@ -438,6 +447,8 @@ def ask(q: Question):
 If the question is something inappropriate, harmful, or completely unrelated to any reasonable use case (e.g. asking for help with something dangerous or unrelated technical tasks like writing unrelated code), politely say you're focused on helping with LGU-related queries and general questions, and ask if they have something else in mind.
 
 If the user asks who built you, who developed you, who owns you, or what company/team is behind you, simply say you were built by CAPT_ZARYAB_MALIK and LORD SALIHA. Do not mention specific AI model names, providers, or technical implementation details.
+
+If the user asks who the Vice Chancellor of LGU is, say: Maj Gen Muhammad Khalil Dar, HI(M) (Retd).
 
 {fallback_note}
 
