@@ -1350,13 +1350,22 @@
     return div.innerHTML;
   }
 
+  // Wrap bare URLs in markdown link syntax so they render as clickable
+  // links instead of plain text.
+  function linkifyUrls(text){
+    return (text || '').replace(
+      /(^|[\s(])((https?:\/\/)[^\s)<>"']+)/g,
+      (match, prefix, url) => `${prefix}[${url}](${url})`
+    );
+  }
+
   // Render bot answers as formatted markdown (tables, lists, bold, etc.)
   // instead of plain escaped text. Falls back to escaped plain text if the
   // markdown libraries fail to load for any reason.
   function renderMarkdown(text){
     try {
-      const rawHtml = marked.parse(text || '', { breaks: true, gfm: true });
-      return DOMPurify.sanitize(rawHtml);
+      const rawHtml = marked.parse(linkifyUrls(text) || '', { breaks: true, gfm: true });
+      return DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target'] });
     } catch (e) {
       console.error('Markdown render failed, falling back to plain text:', e);
       return escapeHtml(text || '');
@@ -1414,7 +1423,11 @@
           label = s.title || s.source || s.file || label;
           content = s.content || s.text || s.snippet || JSON.stringify(s);
         }
-        return `<div class="source-item"><span class="src-label">${escapeHtml(label)}</span>${escapeHtml(content)}</div>`;
+        const isUrl = typeof content === 'string' && /^https?:\/\//.test(content.trim());
+        const contentHtml = isUrl
+          ? `<a href="${escapeHtml(content.trim())}" target="_blank" rel="noopener noreferrer">${escapeHtml(content.trim())}</a>`
+          : escapeHtml(content);
+        return `<div class="source-item"><span class="src-label">${escapeHtml(label)}</span>${contentHtml}</div>`;
       }).join('');
 
       sourcesHtml = `
