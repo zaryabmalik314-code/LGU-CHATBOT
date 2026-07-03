@@ -205,6 +205,19 @@ def expand_acronyms(text: str) -> str:
 PROGRAM_URL_LOOKUP = {
     "computational mathematics and artificial intelligence": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence",
     "cmai": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence",
+    "mathematics faculty": "https://lgu.edu.pk/faculty-of-mathematics",
+    "maths faculty": "https://lgu.edu.pk/faculty-of-mathematics",
+    "math department": "https://lgu.edu.pk/faculty-of-mathematics",
+    "maths department": "https://lgu.edu.pk/faculty-of-mathematics",
+    "mathematics department": "https://lgu.edu.pk/faculty-of-mathematics",
+    "hafiz bilal": "https://lgu.edu.pk/faculty-of-mathematics",
+    "hafiz muhammad bilal": "https://lgu.edu.pk/faculty-of-mathematics",
+    "naureen riaz": "https://lgu.edu.pk/faculty-of-mathematics",
+    "muhammad saqlain": "https://lgu.edu.pk/faculty-of-mathematics",
+    "sana akram": "https://lgu.edu.pk/faculty-of-mathematics",
+    "maryam fatima": "https://lgu.edu.pk/faculty-of-mathematics",
+    "sumaira ajmal": "https://lgu.edu.pk/faculty-of-mathematics",
+    "ayesha saeed": "https://lgu.edu.pk/faculty-of-mathematics",
 }
 
 
