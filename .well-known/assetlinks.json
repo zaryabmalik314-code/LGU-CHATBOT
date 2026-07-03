@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "app.netlify.chatbothh.twa",
-        "sha256_cert_fingerprints": ["A1:DB:C3:CF:5F:07:74:85:2A:49:85:40:38:56:A5:56:E2:C6:E0:97:DB:BB:F8:16:8D:5B:94:FA:14:F1:FD:D1"]
+        "package_name": "app.netlify.lguchatbot.twa",
+        "sha256_cert_fingerprints": ["99:4B:3E:C2:4D:7A:10:37:9D:32:CC:FF:D9:73:C5:C9:59:C7:FD:23:AB:CA:50:84:EA:06:06:B8:68:5E:30:D5"]
       }
     }]
