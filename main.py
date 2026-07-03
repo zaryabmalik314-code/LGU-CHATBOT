@@ -452,6 +452,15 @@ Answer:"""
     )
     answer = response.choices[0].message.content
 
+    if "don't have" in answer.lower() or "do not have" in answer.lower():
+        try:
+            gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If you don't know, say so.\n\nQuestion: {question}"
+            gemini_resp = gemini_model.generate_content(gemini_prompt)
+            answer = gemini_resp.text
+            sources = []
+        except Exception as e:
+            print(f"Gemini retry failed: {e}")
+
     session_memory[session_id].append({"question": question, "answer": answer})
     if len(session_memory[session_id]) > MAX_HISTORY:
         session_memory[session_id] = session_memory[session_id][-MAX_HISTORY:]
