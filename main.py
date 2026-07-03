@@ -152,7 +152,7 @@ CASUAL_PATTERNS = {
     r"^(thanks|thank you|thx|ty)[!.]*$": "You're welcome! Let me know if you need anything else.",
     r"^(bye|goodbye|see ya|see you|cya)[!.]*$": "Goodbye! Have a great day 👋",
     r"^(ok|okay|cool|nice|great)[!.]*$": "👍 Anything else I can help with?",
-    r"who (made|built|created|developed|owns|is behind) you[?!.\s]*$": "I was built by CAPT_ZARYAB_MALIK and LORD SALIHA.",
+    r"who (made|made you|built|build|created|develops|developed|owns|own|is behind) you": "I was built by CAPT_ZARYAB_MALIK and LORD SALIHA.",
     r"^(what are you|who are you)[?!.]*$": "I'm the LGU Assistant — here to help with admissions, programs, fees, and other university-related questions.",
 }
 
@@ -447,7 +447,7 @@ Answer:"""
     response = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant for LGU. Keep answers short and to the point by default (2-4 sentences). Only give a longer, detailed answer or a full table/list if the user explicitly asks for details, a list, or a table."},
+            {"role": "system", "content": "You are a helpful assistant for LGU. Keep answers short and to the point by default (2-4 sentences). Only give a longer, detailed answer or a full table/list if the user explicitly asks for details, a list, or a table. If asked who built, made, owns, or created you, you MUST answer exactly: 'I was built by CAPT_ZARYAB_MALIK and LORD SALIHA.' Never say LGU, an IT department, or any company built you."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=800,
