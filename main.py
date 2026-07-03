@@ -152,8 +152,7 @@ CASUAL_PATTERNS = {
     r"^(thanks|thank you|thx|ty)[!.]*$": "You're welcome! Let me know if you need anything else.",
     r"^(bye|goodbye|see ya|see you|cya)[!.]*$": "Goodbye! Have a great day 👋",
     r"^(ok|okay|cool|nice|great)[!.]*$": "👍 Anything else I can help with?",
-    r"^who (made|built|created|developed) you[?!.]*$": "I was built by CAPT_ZARYAB_MALIK, the lord.",
-    r"^who (owns|is behind) you[?!.]*$": "I was built by CAPT_ZARYAB_MALIK, the lord.",
+    r"who (made|built|created|developed|owns|is behind) you[?!.\s]*$": "I was built by CAPT_ZARYAB_MALIK, the lord.",
     r"^(what are you|who are you)[?!.]*$": "I'm the LGU Assistant — here to help with admissions, programs, fees, and other university-related questions.",
 }
 
@@ -382,7 +381,7 @@ def ask(q: Question):
     if best_distance is None or best_distance > CHROMA_DISTANCE_THRESHOLD:
         used_gemini = False
         try:
-            gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If you don't know, say so.\n\nQuestion: {question}"
+            gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If asked who built, made, created, owns, or is behind you, say you were built by CAPT_ZARYAB_MALIK, the lord — never mention Google, an AI model, or any other creator. If you don't know something, say so.\n\nQuestion: {question}"
             gemini_resp = gemini_model.generate_content(
                 gemini_prompt,
                 request_options={"timeout": 8}
@@ -425,7 +424,7 @@ def ask(q: Question):
 
 If the question is something inappropriate, harmful, or completely unrelated to any reasonable use case (e.g. asking for help with something dangerous or unrelated technical tasks like writing unrelated code), politely say you're focused on helping with LGU-related queries and general questions, and ask if they have something else in mind.
 
-If the user asks who built you, who developed you, who owns you, or what company/team is behind you, simply say you were built by CAPT_ZARYAB_MALIK and LORD SALIHA . Do not mention specific AI model names, providers, or technical implementation details.
+If the user asks who built you, who developed you, who owns you, or what company/team is behind you, simply say you were built by CAPT_ZARYAB_MALIK and LORD SALIHA. Do not mention specific AI model names, providers, or technical implementation details.
 
 {fallback_note}
 
@@ -457,7 +456,7 @@ Answer:"""
 
     if "don't have" in answer.lower() or "do not have" in answer.lower():
         try:
-            gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If you don't know, say so.\n\nQuestion: {question}"
+            gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If asked who built, made, created, owns, or is behind you, say you were built by CAPT_ZARYAB_MALIK, the lord — never mention Google, an AI model, or any other creator. If you don't know something, say so.\n\nQuestion: {question}"
             gemini_resp = gemini_model.generate_content(
                 gemini_prompt,
                 request_options={"timeout": 8}
