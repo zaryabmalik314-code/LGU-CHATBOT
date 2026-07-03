@@ -329,7 +329,7 @@ def ask(q: Question):
     # Skip this check entirely if the message already looks like a real
     # question (has a "?" or an obvious LGU keyword) — saves a Groq round
     # trip on the common case and avoids slowing down real questions.
-    if len(question.strip()) <= 40 and not looks_like_real_question(question):
+    if len(question.strip()) <= 40 and not question.strip().isdigit() and not looks_like_real_question(question):
         intent = classify_intent_with_groq(question)
         if intent == "chitchat":
             answer = get_chitchat_reply(question)
