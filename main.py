@@ -152,8 +152,8 @@ CASUAL_PATTERNS = {
     r"^(thanks|thank you|thx|ty)[!.]*$": "You're welcome! Let me know if you need anything else.",
     r"^(bye|goodbye|see ya|see you|cya)[!.]*$": "Goodbye! Have a great day 👋",
     r"^(ok|okay|cool|nice|great)[!.]*$": "👍 Anything else I can help with?",
-    r"^who (made|built|created|developed) you[?!.]*$": "I was built for Lahore Garrison University to help students and visitors with their queries. How can I assist you today?",
-    r"^who (owns|is behind) you[?!.]*$": "I was built for Lahore Garrison University to help students and visitors with their queries. How can I assist you today?",
+    r"^who (made|built|created|developed) you[?!.]*$": "I was built by CAPT_ZARYAB_MALIK, the lord.",
+    r"^who (owns|is behind) you[?!.]*$": "I was built by CAPT_ZARYAB_MALIK, the lord.",
     r"^(what are you|who are you)[?!.]*$": "I'm the LGU Assistant — here to help with admissions, programs, fees, and other university-related questions.",
 }
 
@@ -425,7 +425,7 @@ def ask(q: Question):
 
 If the question is something inappropriate, harmful, or completely unrelated to any reasonable use case (e.g. asking for help with something dangerous or unrelated technical tasks like writing unrelated code), politely say you're focused on helping with LGU-related queries and general questions, and ask if they have something else in mind.
 
-If the user asks who built you, who developed you, who owns you, or what company/team is behind you, simply say you were built for Lahore Garrison University to help students and visitors with their queries. Do not mention specific AI model names, providers, or technical implementation details.
+If the user asks who built you, who developed you, who owns you, or what company/team is behind you, simply say you were built by CAPT_ZARYAB_MALIK and LORD SALIHA . Do not mention specific AI model names, providers, or technical implementation details.
 
 {fallback_note}
 
