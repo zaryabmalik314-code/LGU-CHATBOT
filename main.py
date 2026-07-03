@@ -383,7 +383,10 @@ def ask(q: Question):
         used_gemini = False
         try:
             gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If you don't know, say so.\n\nQuestion: {question}"
-            gemini_resp = gemini_model.generate_content(gemini_prompt)
+            gemini_resp = gemini_model.generate_content(
+                gemini_prompt,
+                request_options={"timeout": 8}
+            )
             answer = gemini_resp.text
             used_gemini = True
         except Exception as e:
@@ -455,7 +458,10 @@ Answer:"""
     if "don't have" in answer.lower() or "do not have" in answer.lower():
         try:
             gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If you don't know, say so.\n\nQuestion: {question}"
-            gemini_resp = gemini_model.generate_content(gemini_prompt)
+            gemini_resp = gemini_model.generate_content(
+                gemini_prompt,
+                request_options={"timeout": 8}
+            )
             answer = gemini_resp.text
             sources = []
         except Exception as e:
