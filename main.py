@@ -482,7 +482,7 @@ Answer:"""
     )
     answer = response.choices[0].message.content
 
-    if "don't have" in answer.lower() or "do not have" in answer.lower():
+    if not forced_url and ("don't have" in answer.lower() or "do not have" in answer.lower()):
         try:
             gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If asked who built, made, created, owns, or is behind you, say you were built by CAPT_ZARYAB_MALIK and LORD SALIHA — never mention Google, an AI model, or any other creator. If you don't know something, say so.\n\nQuestion: {question}"
             gemini_resp = gemini_model.generate_content(
