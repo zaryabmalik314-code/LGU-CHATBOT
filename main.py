@@ -400,41 +400,8 @@ def ask(q: Question):
     #     sources = [s for _, _, s in ranked]
 
     used_web_fallback = False
-    if best_distance is None or best_distance > CHROMA_DISTANCE_THRESHOLD:
-        used_gemini = False
-        try:
-            gemini_prompt = f"Answer briefly and accurately as an assistant for Lahore Garrison University (LGU), Pakistan. If asked who built, made, created, owns, or is behind you, say you were built by CAPT_ZARYAB_MALIK and LORD SALIHA — never mention Google, an AI model, or any other creator. If you don't know something, say so.\n\nQuestion: {question}"
-            gemini_resp = gemini_model.generate_content(
-                gemini_prompt,
-                request_options={"timeout": 8}
-            )
-            answer = gemini_resp.text
-            used_gemini = True
-        except Exception as e:
-            print(f"Gemini fallback failed: {e}")
-
-        if used_gemini:
-            session_memory[session_id].append({"question": question, "answer": answer})
-            if len(session_memory[session_id]) > MAX_HISTORY:
-                session_memory[session_id] = session_memory[session_id][-MAX_HISTORY:]
-            return {"answer": answer, "sources": [], "session_id": session_id}
-
-        if _check_and_register_web_search(session_id):
-            web_context, web_sources = web_search_fallback(question)
-            if web_context:
-                context = web_context
-                sources = web_sources
-                used_web_fallback = True
-            else:
-                context = "\n\n".join(chunks)[:12000]
-        else:
-            answer = "I'm primarily built to help with LGU-related questions — admissions, programs, fees, faculty, and campus life. I'm not able to look up general questions right now, but feel free to ask me anything about the university!"
-            session_memory[session_id].append({"question": question, "answer": answer})
-            if len(session_memory[session_id]) > MAX_HISTORY:
-                session_memory[session_id] = session_memory[session_id][-MAX_HISTORY:]
-            return {"answer": answer, "sources": [], "session_id": session_id}
-    else:
-        context = "\n\n".join(chunks)[:12000]
+    low_confidence = best_distance is None or best_distance > CHROMA_DISTANCE_THRESHOLD
+    context = "\n\n".join(chunks)[:12000]
 
     if used_web_fallback:
         fallback_note = "The context below comes from a general web search because this question isn't covered in LGU's own records. Answer normally using this context, and you don't need to mention where the information came from unless asked."
