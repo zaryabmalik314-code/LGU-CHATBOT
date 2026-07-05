@@ -65,12 +65,12 @@ gemini_model = genai.GenerativeModel("gemini-2.5-flash")
 # If the closest chunk's distance is above this, we treat it as "not found
 # in our data" and fall back to a web search instead of forcing an answer
 # out of irrelevant context. Tune this after watching real distances in logs.
-CHROMA_DISTANCE_THRESHOLD = 1.1
+CHROMA_DISTANCE_THRESHOLD = 1.35
 
 # How many chunks to pull from Chroma before reranking, and how many to
 # actually keep for the final context after reranking.
-CHROMA_RETRIEVE_K = 15
-RERANK_KEEP_K = 8
+CHROMA_RETRIEVE_K = 25
+RERANK_KEEP_K = 12
 print(f"=== Settings: CHROMA_RETRIEVE_K={CHROMA_RETRIEVE_K}, RERANK_KEEP_K={RERANK_KEEP_K} ===")
 
 
@@ -207,37 +207,16 @@ PROGRAM_URL_LOOKUP = {
     "cmai": "https://lgu.edu.pk/bs-mathematics-in-computational-mathematics-and-artificial-intelligence",
     "mathematics faculty": "https://lgu.edu.pk/faculty-of-mathematics",
     "maths faculty": "https://lgu.edu.pk/faculty-of-mathematics",
+    "maths staff": "https://lgu.edu.pk/faculty-of-mathematics",
     "math department": "https://lgu.edu.pk/faculty-of-mathematics",
     "maths department": "https://lgu.edu.pk/faculty-of-mathematics",
     "mathematics department": "https://lgu.edu.pk/faculty-of-mathematics",
-    "hafiz bilal": "https://lgu.edu.pk/faculty-of-mathematics",
-    "hafiz muhammad bilal": "https://lgu.edu.pk/faculty-of-mathematics",
-    "naureen riaz": "https://lgu.edu.pk/faculty-of-mathematics",
-    "muhammad saqlain": "https://lgu.edu.pk/faculty-of-mathematics",
-    "sana akram": "https://lgu.edu.pk/faculty-of-mathematics",
-    "maryam fatima": "https://lgu.edu.pk/faculty-of-mathematics",
-    "sumaira ajmal": "https://lgu.edu.pk/faculty-of-mathematics",
-    "ayesha saeed": "https://lgu.edu.pk/faculty-of-mathematics",
-    "iram sarwar": "https://lgu.edu.pk/faculty-of-mathematics",
-    "aleen ijaz": "https://lgu.edu.pk/faculty-of-mathematics",
-    "arshad hameed": "https://lgu.edu.pk/faculty-of-mathematics",
-    "mahrukh irfan": "https://lgu.edu.pk/faculty-of-mathematics",
-    "ghulam muhammad": "https://lgu.edu.pk/faculty-of-mathematics",
-    "shumaila nisar": "https://lgu.edu.pk/faculty-of-mathematics",
-    "lubna shaheen": "https://lgu.edu.pk/faculty-of-mathematics",
-    "sumaira ajmal khan": "https://lgu.edu.pk/faculty-of-mathematics",
-    "nousheen ilyas": "https://lgu.edu.pk/faculty-of-mathematics",
-    "muhammad naeem aslam": "https://lgu.edu.pk/faculty-of-mathematics",
-    "rukhsana nazer": "https://lgu.edu.pk/faculty-of-mathematics",
-    "nida shamshad": "https://lgu.edu.pk/faculty-of-mathematics",
+    "maths dept": "https://lgu.edu.pk/faculty-of-mathematics",
     "admission": "https://lgu.edu.pk/admissions",
     "admissions": "https://lgu.edu.pk/admissions",
-    "math department": "https://lgu.edu.pk/department-of-mathematics",
-    "maths department": "https://lgu.edu.pk/department-of-mathematics",
-    "mathematics department": "https://lgu.edu.pk/department-of-mathematics",
     "merit list": "https://lgu.edu.pk/merit-list",
     "merit": "https://lgu.edu.pk/merit-list",
-    "policy": "https://lgu.edu.pk/policies",
+    "policy": "https://lgu.edu.pk/policies-2",
     "policies": "https://lgu.edu.pk/policies-2",
 }
 
