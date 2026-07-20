@@ -1,0 +1,11 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "LGU Assistant",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "LGU Assistant",
+  "start_url": "/",
+  "theme_color": "#ffffff"
+}
