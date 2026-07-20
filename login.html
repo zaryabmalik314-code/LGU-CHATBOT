@@ -53,7 +53,7 @@
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
-      if (!email.toLowerCase().endsWith("@lgu.edu.pk")) {
+      if (!/@([a-z0-9-]+\.)*lgu\.edu\.pk$/i.test(email)) {
         showMessage("Please use your official LGU email (@lgu.edu.pk).", "error");
         return;
       }
