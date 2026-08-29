@@ -1,16 +1,16 @@
 {
-  "name": "LGU Assistant",
-  "short_name": "LGU Assistant",
-  "description": "AI chatbot assistant for Lahore Garrison University students and visitors.",
-  "start_url": "/index.html",
-  "scope": "/",
+  "background_color": "#0f2140",
+  "dir": "ltr",
   "display": "standalone",
-  "background_color": "#0a1628",
-  "theme_color": "#0a1628",
-  "orientation": "portrait",
+  "name": "LGU Assistant",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "LGU Assistant",
+  "start_url": "/",
+  "theme_color": "#0f2140",
   "icons": [
     {
-      "src": "icon-192x192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
@@ -22,7 +22,7 @@
       "purpose": "any"
     },
     {
-      "src": "icon-192x192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"

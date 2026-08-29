@@ -9,7 +9,7 @@
 <body>
 
   <div class="auth-wrapper">
-    <div class="seal">LGU</div>
+    <img src="icon-512.png" alt="LGU Seal" class="seal" />
     <div class="auth-card">
       <h1>Welcome back</h1>
       <p class="subtitle">Log in to continue to the LGU Assistant</p>
@@ -32,7 +32,6 @@
 
       <p class="switch-link">Don't have an account? <a href="signup.html">Sign up</a></p>
     </div>
-    <p class="footer-note">LGU Chatbot &middot; Secured by Firebase Authentication</p>
   </div>
 
   <script type="module">
@@ -53,6 +52,11 @@
 
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+
+      if (!/@([a-z0-9-]+\.)*lgu\.edu\.pk$/i.test(email)) {
+        showMessage("Please use your official LGU email (@lgu.edu.pk).", "error");
+        return;
+      }
 
       loginBtn.disabled = true;
       loginBtn.textContent = "Logging in...";
